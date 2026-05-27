@@ -5,6 +5,7 @@
 import numpy as np
 from scipy.stats import poisson
 import copy
+import matplotlib.pyplot as plt
 
 REWARD_RENT = 10
 REWARD_CANNOT_RENT = 0
@@ -210,9 +211,34 @@ def log_summary(policies, values):
         print(f"  value_min={np.min(values[i].x)} value_max={np.max(values[i].x)} value_mean={np.mean(values[i].x)}")
         print(f"  policy_min={np.min(policies[i].x)} policy_max={np.max(policies[i].x)} policies_mean={np.mean(policies[i].x)}")
 
+def plot_policy(policy: Policy, title: str, id: int):
+    fig = plt.figure()
+    data = policy.x
+    data[:, :, 1, :] = -data[:, :, 1, :]
+    data = data.sum(axis=(2, 3))
+    ax = plt.gca()
+    ax.set_title(title)
+    im = ax.imshow(data)
+    cbar = ax.figure.colorbar(im, ax=ax)
+    cbar.ax.set_ylabel("net no. cars moved between locations", rotation=-90)
+    plt.xlabel("no. cars at location 1")
+    plt.ylabel("no. cars at location 2")
+    plt.savefig(f"policy_{id}.png")
+
+def plot_value(value: Value):
+    ...
+
 if __name__ == "__main__":
     policies, values = policy_iteration(Policy())
     log_summary(policies, values)
+    for i, po in enumerate(policies):
+        plot_policy(po, rf"$\pi_{i}$", i)
+    # dummy_po = Policy()
+    # dummy_po.x[10, 10, 0, 1] = 5
+    # dummy_po.x[10, 5, 1, 0] = 3
+    # plot_policy(dummy_po, rf"dummy policy $\pi_d$", 0)
+    # dummy_val = Value()
+    # plot_value(dummy_val)
 
 """
 Output
@@ -238,6 +264,10 @@ Iteration: [0]
 Iteration: [1]
   value_min=402.10287936952636 value_max=607.2791629089214 value_mean=538.9271065616259
   policy_min=0.0 policy_max=5.0 policies_mean=0.6377551020408163
+
+------
+Figures: policy_0.png; policy_1.png
+
 """
 
 
