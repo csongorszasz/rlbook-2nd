@@ -1,5 +1,5 @@
 # 1. Reproduction of Jack's Car Rental problem solution (Example 4.2)
-# 2. Adaptation for Exercise 4.7
+# [NOT DONE] 2. Adaptation for Exercise 4.7
 ########################################################################
 
 import numpy as np
