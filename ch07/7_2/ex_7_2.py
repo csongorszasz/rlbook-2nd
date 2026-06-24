@@ -4,7 +4,7 @@ Exercise 7.2
 
 Devised example: Random Walk (Example 6.2 from the book)
 
-    A Markov reward process. Capital letters are states; starting state is C; numbers above edges represent rewards state-transitions;
+    A Markov reward process. Capital letters are states; starting state is C; numbers above edges represent rewards of state-transitions;
     in any given non-terminal state, there is an equal probability of moving 'left' or 'right' (10 possible transitions in total); 
     an episode ends when a terminal state ([end]) is reached.
     
@@ -86,7 +86,7 @@ class ErrorFormula(Enum):
     REGULAR_DIFF = auto()
     TD_SUM = auto()
 
-def _error_t_a_e_d(past_states, past_rewards, n, T, tao, values, *args):
+def _error_regular_diff(past_states, past_rewards, n, T, tao, values, *args):
     G = 0
     for i in range(tao+1, min(tao+n, T)+1):
         G += past_rewards[i % (n+1)] # undiscounted
@@ -94,15 +94,15 @@ def _error_t_a_e_d(past_states, past_rewards, n, T, tao, values, *args):
         G += values[past_states[(tao + n) % (n+1)]] # undiscounted
     return G - values[past_states[tao % (n+1)]]
 
-def _error_s_o_t_e(past_states, past_rewards, n, T, tao, values, values_episode_start):
+def _error_td_sum(past_states, past_rewards, n, T, tao, values, values_episode_start):
     error = 0
     for i in range(tao, min(tao+n, T)):
         error += past_rewards[(i+1) % (n+1)] + values_episode_start[past_states[(i+1) % (n+1)]] - values_episode_start[past_states[i % (n+1)]] # undiscounted
     return error
 
 ERROR_FN = {
-    ErrorFormula.REGULAR_DIFF: _error_t_a_e_d,
-    ErrorFormula.TD_SUM: _error_s_o_t_e
+    ErrorFormula.REGULAR_DIFF: _error_regular_diff,
+    ErrorFormula.TD_SUM: _error_td_sum
 }
 
 def compute_error(past_states, past_rewards, n, T, tao, values, values_episode_start, error_formula: ErrorFormula):
