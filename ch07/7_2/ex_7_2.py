@@ -4,14 +4,14 @@ Exercise 7.2
 
 Devised example: Random Walk (Example 6.2 from the book)
 
-    A Markov reward process. Capital letters are states; starting state is C; numbers above edges represent rewards of state-transitions;
-    in any given non-terminal state, there is an equal probability of moving 'left' or 'right' (10 possible transitions in total); 
+    A Markov reward process. Capital letters are states; starting state is C (middle state); numbers above edges represent rewards of state-transitions;
+    in any given non-terminal state, there is an equal probability of moving 'left' or 'right'; 
     an episode ends when a terminal state ([end]) is reached.
     
 
-                  0     0     0     0     0     1
-            [end] <- A <-> B <-> C <-> D <-> E -> [end]
-                              (start)
+                  0     0     0             0     0     1
+            [end] <- A <-> B <-> ... C ... <-> D <-> E -> [end]
+                                  (start)
 """
 
 import numpy as np
@@ -19,6 +19,7 @@ from enum import Enum, auto
 import seaborn as sns
 import matplotlib.pyplot as plt
 import pandas as pd
+from datetime import datetime
 
 #---
 # metrics
@@ -32,8 +33,8 @@ class EvalMetrics:
 
     def step_episode(self, estimate, target):
         rms = 0
-        for i in range(len(estimate)):
-            rms += ((target[i] - estimate[i]) ** 2) / len(estimate)
+        for i in range(1, len(estimate)-1):
+            rms += ((target[i] - estimate[i]) ** 2) / (len(estimate)-2)
         rms = np.sqrt(rms)
         self.rms.append(rms)
 
@@ -56,14 +57,16 @@ class AveragedEvalMetrics(EvalMetrics):
 #---
 # environment
 #---
-RNG = np.random.default_rng(0)
-STATE_SPACE = np.arange(7)
-START_STATE = 3
-TERM_STATES = set([0, 6])
-VALUES_REAL = np.array([0.0, 1/6, 2/6, 3/6, 4/6, 5/6, 0.0])
+SEED = 0
+RNG = np.random.default_rng(SEED)
+N_STATES = 13
+STATE_SPACE = np.arange(N_STATES)
+START_STATE = N_STATES // 2
+TERM_STATES = set([0, N_STATES-1])
+VALUES_REAL = np.concatenate(([0.0], (np.arange(N_STATES-2) + 1) / (N_STATES-1), [0.0]))
 
 def get_reward(old_state, new_state):
-    if old_state == 5 and new_state == 6:
+    if old_state == N_STATES-2 and new_state == N_STATES-1:
         return 1.0
     return 0.0
 
@@ -115,7 +118,7 @@ def compute_error(past_states, past_rewards, n, T, tao, values, values_episode_s
 def n_step_td_for_values(alpha, n, n_episodes, error_formula: ErrorFormula, reset_rng=False):
     if reset_rng:
         global RNG
-        RNG = np.random.default_rng(0)
+        RNG = np.random.default_rng(SEED)
         
     metrics = EvalMetrics(alpha, n, error_formula)
     values = np.full(STATE_SPACE.shape, 0.5)
@@ -126,7 +129,7 @@ def n_step_td_for_values(alpha, n, n_episodes, error_formula: ErrorFormula, rese
     past_rewards = np.full(n+1, 0.0)
     
     for i in range(n_episodes):
-        print(f"Episode [{i+1}]")
+        # print(f"Episode [{i+1}]")
         values_episode_start = values.copy()
         state = START_STATE
         past_states[0] = state
@@ -148,7 +151,7 @@ def n_step_td_for_values(alpha, n, n_episodes, error_formula: ErrorFormula, rese
                 break
             state = new_state
             t += 1
-        print(f"Ended after {t+1} steps")
+        # print(f"Ended after {t+1} steps")
         metrics.step_episode(values, VALUES_REAL)
     return values, metrics
 #.
@@ -156,10 +159,10 @@ def n_step_td_for_values(alpha, n, n_episodes, error_formula: ErrorFormula, rese
 #---
 # visualization
 #---
-def plot_rms_over_episodes(*metrics: EvalMetrics):
+def plot_rms_over_episodes(*metrics: EvalMetrics, n_runs=None):
     plt.figure(figsize=(16,10)) # 1600x1000
     unique_combos = sorted(list(set([(m.alpha, m.n) for m in metrics])))
-    palette = sns.color_palette("tab10", len(unique_combos))
+    palette = sns.color_palette("tab20", len(unique_combos))
     color_map = {combo: palette[i] for i, combo in enumerate(unique_combos)}
 
     for m in metrics:
@@ -179,13 +182,20 @@ def plot_rms_over_episodes(*metrics: EvalMetrics):
         )
     plt.xlabel("Episodes")
     plt.ylabel("Average RMS error")
+    details = []
+    details.append(f"{N_STATES} possible states")
+    if n_runs is not None:
+        details.append(f"{n_runs} runs per parameter configuration")
+    title = "RMS error over episodes"
+    if details:
+        title += "\n" + " | ".join(details)
     plt.title(
-        "RMS error over episodes",
+        title,
         fontsize=16, 
         pad=15, 
     )
     plt.legend(framealpha=0.3)
-    path = "rms_over_episodes.png"
+    path = f"rms_over_episodes_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
     plt.savefig(path)
     plt.close()
     print(f"Saved RMS error over episodes plot to: {path}")
@@ -198,15 +208,19 @@ if __name__ == "__main__":
     n_episodes = 100
     n_runs = 100
 
+    cnt = 0
     for i in range(len(alpha)):
+        print(f"Experiment [{cnt+1}/{len(alpha)}] with alpha={alpha[i]}, n={n[i]}, error_formula={error_formula[i].name}")
         avg_metrics = AveragedEvalMetrics(alpha[i], n[i], error_formula[i])
+        RNG = np.random.default_rng(SEED)
         for _ in range(n_runs):
             values, metrics = n_step_td_for_values(alpha[i], n[i], n_episodes, error_formula[i], reset_rng=False)
             avg_metrics.step_run(metrics)
         avg_metrics.finalize(n_runs)
         metrics_all_runs.append(avg_metrics)
+        cnt += 1
     
-    plot_rms_over_episodes(*metrics_all_runs)
+    plot_rms_over_episodes(*metrics_all_runs, n_runs=n_runs)
 
     #---
     # testing single run 
