@@ -16,12 +16,13 @@ The TD-sum method (method nr. 2, dashed lines) appears to fall behind with highe
 
 The winner appears to be method nr. 1, online n-step TD.
 
-<!-- ## _Solution to Exercise 7.10_: Comparing data efficiency of off-policy learning with and without control variates
+## _Solution to Exercise 7.10_: Comparing data efficiency of off-policy learning with and without control variates
 
 The learning curve of the algorithm with control variates is expected to converge quicker due to more stable variance.
 
 In the following figures, a line represents the total reward obtained within an episode, averaged over 100 runs. The shaded regions show standard deviation.
 
+\<FIGURE PLACEHOLDER\>
 ![]()
 
 - Observation: the method (1) not using control variates degrades in performance drastically when large step size ($\alpha$) and large n-step are used, while the method (2) using control variates robustly achieves a positive score (though, far from optimal).
@@ -29,4 +30,4 @@ In the following figures, a line represents the total reward obtained within an 
     - method (2) shows no further learning after the first few episodes, and gets stuck at a suboptimum; 
     
     - method (1), on the other hand, is able to find the optimal policy, though only through a very limited set of parameters
- -->
+
